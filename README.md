@@ -5,7 +5,7 @@ Make new branch from commit faa5e08e4491246865fb9aa85955ea7abcc5b7a0 (where the 
 ## Inhaltsverzeichnis
 
 -   01 - Einstieg
--   02 - Vagrant Umsetzung
+-   02 - Docker Umsetzung
 -   03 - Sicherheitsaspekte
 -   04 - Abschluss
 
@@ -20,7 +20,7 @@ Make new branch from commit faa5e08e4491246865fb9aa85955ea7abcc5b7a0 (where the 
 | Docker / Container | Ich konnte bereits Erfahrungen mit Docker sammeln. Bei der Arbeit habe ich eine PHP-Applikation in einem Docker-Container entwickelt und dann auch so deployed. Zudem konnte ich bereits einige Erfahrungen mit KVM-Containern sammeln.                                                                                              |
 | Microservices      | Microservies kenne ich lediglich aus der Theorie. Ich weiss, dass damit kleine, kompakte Applikationen in einem Container gemeint sind. Zudem kann man dann tools wie Kubernetes verwenden, um viele dieser kleinen Container zu managen. Allerdings konnte ich bisher noch keine Praxiserfahrungen mit diesen Technologien sammeln. |
 
-### Kennt die Vagrant-Befehlte
+### Kennt die Docker-Befehle
 
 | Befehl       | Beschreibung                                       |
 | ------------ | -------------------------------------------------- |
@@ -32,78 +32,63 @@ Make new branch from commit faa5e08e4491246865fb9aa85955ea7abcc5b7a0 (where the 
 | docker push  | Ladet ein Image in die Registry hoch               |
 | docker exec  | Führ einen Befehl in einem laufenden Container aus |
 
-## 02 Vagrant Umsetzung
+### Docker Volumes
+
+Falls ein Verzeichnis innerhalb des Containers persistent gespeichert werden soll, muss dies speziell gekennzeichnet werden. Dies kann zum Beispiel wichtig sein, wenn man eine MySQL-Datenbank innerhalb eines Containers einsetzt.
+
+## 02 Docker Umsetzung
 
 ### Netzwerkplan
 
-    +--------------------+          +--------------------+          +---------------------+
-    ! Proxy Server       !          ! Web Server         !          ! Datenbank Server    !
-    ! Host: proxy        !          ! Host: web          !          ! Host: db            !
-    ! IP: 192.168.40.99  ! <------> ! IP: 192.168.40.100 ! <------> ! IP: 192.168.40.101  !
-    ! Port: 5000         !          ! Port: 80           !          ! Port 3306           !
-    ! Nat: 5000          !          ! Nat: -             !          ! Nat: -              !
-    +--------------------+          +--------------------+          +---------------------+
+    +---------------------------------------------------------------+
+    ! Container: Nginx Frontend Webserver                           !
+    ! Container: Python Flask Backend API                           !
+    +---------------------------------------------------------------+
+    ! Container-Engine: Docker                                      !
+    +---------------------------------------------------------------+
+    ! Minikube Kubernetes Umgebung                                  !
+    +---------------------------------------------------------------+
+    ! Hypervisor: VirtualBox                                        !
+    +---------------------------------------------------------------+
+    ! Host-OS: macOS                                                !
+    +---------------------------------------------------------------+
+    ! Notebook - Schulnetz 10.x.x.x                                 !
+    +---------------------------------------------------------------+
+
+### Relevante Befehle
+
+-   kubectl expose deployment web-deployment --type=NodePort
+-   minikube service web-deployment --url
+
+-   docker build -t fnoah/m300-lb02-web .
+-   docker push fnoah/m300-lb02-web
+
+-   delete pod to update image
+
+-   kubectl expose deployment hello-minikube --type=NodePort
+
+-   kubectl exec -it web-deployment -- /bin/bash
+
+-   kubectl get services
 
 ## 03 Sicherheitsaspekte
 
-### Firewall
+### Logging
 
-Ausgehende Verbindungen werden standardmässig erlaubt.
+In der Kubernetes-Umgebung können logs mit folgendem Befehl abgerufen werden: `kubectl logs <pod-name>`
 
-#### Proxy
+### Überwachung
 
--   `sudo ufw enable`
--   `sudo ufw allow 5000`
--   `sudo ufw allow from 192.168.40.1 to any port 22`
+Für lokale Container kann mit folgendem Befehl ein Monitoring-Container eingesetztwerden: `docker run -d --name cadvisor -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro -p 8080:8080 google/cadvisor:latest`
 
-#### Web
+In der Kubernetes-Umgebung mit Minicube kann man mit folgendem Befehl das Webinterface aufrufen, wo diese Funktionalitäten bereits integriert sind.
 
--   `sudo ufw enable`
--   `sudo ufw allow from 192.168.40.99 to any http`
--   `sudo ufw allow from 192.168.40.1 to any port 22`
+### Sicherheitsaspekte
 
-#### DB
-
--   `sudo ufw enable`
--   `sudo ufw allow from 192.168.40.100 to any port 3306`
--   `sudo ufw allow from 192.168.40.1 to any port 22`
-
-### Reverse Proxy
-
-```
-ProxyPass "/proxy" "http://192.168.40.100"
-ProxyPassReverse "/proxy" "http://192.168.40.100"
-```
-
-### Benutzer
-
-#### Proxy
-
-| Benutzername | Funktion                                                                                                 |
-| ------------ | -------------------------------------------------------------------------------------------------------- |
-| `root`       | Der Systemverwalter unter Linux                                                                          |
-| `nobody`     | Wird von Prozessen als Benutzererkennung verwendet, wenn nur ein Minimum an Rechten vergeben werden soll |
-| `www-data`   | Benutzer des Webservers Apache                                                                           |
-
-#### Web
-
-| Benutzername | Funktion                                                                                                 |
-| ------------ | -------------------------------------------------------------------------------------------------------- |
-| `root`       | Der Systemverwalter unter Linux                                                                          |
-| `nobody`     | Wird von Prozessen als Benutzererkennung verwendet, wenn nur ein Minimum an Rechten vergeben werden soll |
-| `www-data`   | Benutzer des Webservers Apache                                                                           |
-
-#### DB
-
-| Benutzername | Funktion                                                                                                 |
-| ------------ | -------------------------------------------------------------------------------------------------------- |
-| `root`       | Der Systemverwalter unter Linux                                                                          |
-| `nobody`     | Wird von Prozessen als Benutzererkennung verwendet, wenn nur ein Minimum an Rechten vergeben werden soll |
-| `mysql`      | Benutzer der MySQL Datenbank                                                                             |
-
-### SSH-Zugriff
-
-Auf eine VM wird mit folgendem Befehl per SSH zugegriffen: `vagrant ssh proxy`, `vagrant ssh web`, `vagrant ssh db`
+-   Lediglich der Port 80 des Web-Frontends wurde via `NodePort` nach Aussen freigegeben
+-   Container laufen in einer dedizierten virtuellen Maschine auf meinem Host
+-   Die verwendeten Images definieren einen Benutzer und laufen nicht direkt als root
+-   In Kubernetes wurden die Container in einzelne Deployments aufgeteilt
 
 ## 04 Abschluss
 
@@ -111,7 +96,7 @@ Auf eine VM wird mit folgendem Befehl per SSH zugegriffen: `vagrant ssh proxy`, 
 
 | Testfall                                                                                              | Resultat                                                                                                                                |
 | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Vom Client (192.168.40.1) auf http://localhost:5000 zugreifen                                         | Funktioniert. Die Default Page des Proxy Servers (192.168.40.99) wird angezeigt                                                         |
+| Vom Client (192.168.40.1) auf http://<kubernetes-ip>:80 zugreifen                                     | Funktioniert. Die Default Page des Proxy Servers (192.168.40.99) wird angezeigt                                                         |
 | Vom Client (192.168.40.1) auf http://localhost:5000/proxy                                             | Funktioniert. Die PHP-Seite mti den Datenbank-Daten des Webservers (192.168.40.100) wird angezeigt                                      |
 | Vom Client (192.168.40.1) auf http://192.168.40.100 zugreifen                                         | Man erhält keine Antwort, da die Firewall nur Verbindungen vom dem Proxy zulässt                                                        |
 | Vom Client (192.168.40.1) auf die Datenbank (192.168.40.101) zugreifen mit dem Benutzeraccount `root` | Funktioniert nicht, da die Firewall den Zugriff blockiert und der Benutzer in SQL zusätzlich auch nur für 192.168.40.100 zugelassen ist |
@@ -121,8 +106,10 @@ Auf eine VM wird mit folgendem Befehl per SSH zugegriffen: `vagrant ssh proxy`, 
 
 ### Vergleich Vorwissen / Wissenszuwachs
 
-Hauptsächlich konnte ich während dieses Projektes meine Shell-Scripting Fähigkeiten verbessern. Die Vagrant-Grundlagen habe ich bereits gekannt, konnte hier aber erstmals mit einem Multi-VM-System arbeiten. Allerdings habe ich zuvor noch nie Shell-Scripts für die automatisierte Installation von Diensten erstellt, was sehr lehrreich war.
+Hauptsächlich konnte ich während dieses Projektes Fähigkeiten verbessern. Die Vagrant-Grundlagen habe ich bereits gekannt, konnte hier aber erstmals mit einem Multi-VM-System arbeiten. Allerdings habe ich zuvor noch nie Shell-Scripts für die automatisierte Installation von Diensten erstellt, was sehr lehrreich war.
+
+Ich könnte während diesem Projekt sehr viel neues über Docker und insbesondere Kubernetes lernen, da ich zuvor erst mit Docker an sich gearbeitet habe. Deshalb habe ich mir in sehr vielen Gebieten neues Wissen zu Kubernetes aneignen können und auch ein paar neue Dinge bezüglich Docker gelernt.
 
 ### Reflextion
 
-Dieses Projekt lief meiner Meinung nach sehr gut. Ich kam schnell voran und konnte bis zum Ende des Projektes mein Projekt gut abschliessen, sodass ich mit dem Endresultat zufrieden war. Während der Realisierung wurde ich zwischenzeitlich etwas davon überrascht, dass die automatisierte Installation mit Shell-Scripts nicht so einfach war, wie ich anfänglich gedacht habe. Der Rest des Projektes verlief jedoch zufriedenstellend.
+Dieses Projekt lief meiner Meinung nach sehr gut. Ich kam schnell voran und konnte bis zum Ende des Projektes mein Projekt gut abschliessen, sodass ich mit dem Endresultat zufrieden war. Während der Realisierung hatte ich zwischenzeitlich Schwierigkeiten mit dem Kubernetes Networking, die ich dann aber alle lösen konnte.
