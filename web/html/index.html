@@ -1,10 +1,26 @@
-<h1>Hello Worldy</h1>
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script>
+            $(function() {
+                $("#load-btn").click(function() {
+                    const inputData = $("#url-input").val();
+                    $.getJSON(inputData, function(data) {
+                        console.log(data);
+                        $("#data-display").text(data.hello);
+                    });
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <h1>Hello World</h1>
+        <p>Enter URL for API</p>
 
-<script>
-    fetch("http://backend-service:5000").then(response => {
-        console.log("-----");
-        console.log(response);
-    });
+        <input type="text" id="url-input" name="url" />
+        <input type="button" id="load-btn" value="Load Data" />
 
-    console.log("Hello Worldd");
-</script>
+        <p id="data-display"></p>
+    </body>
+</html>

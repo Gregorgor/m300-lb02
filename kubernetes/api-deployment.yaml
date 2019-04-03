@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+    name: m300-lb02-api
+spec:
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: m300-lb02-api
+                tier: backend
+        spec:
+            containers:
+                - name: m300-lb02-api
+                  image: fnoah/m300-lb02-api:latest
+                  resources:
+                      requests:
+                          cpu: 100m
+                          memory: 100Mi
+                  ports:
+                      - containerPort: 8080

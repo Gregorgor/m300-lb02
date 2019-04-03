@@ -1,0 +1,5 @@
+docker system prune -a
+
+docker build -t fnoah/m300-lb02-api ./node_api/
+
+docker build -t fnoah/m300-lb02-web ./web

@@ -1,8 +1,12 @@
-# Instructions copied from - https://hub.docker.com/_/python/
-FROM python:3-onbuild
+FROM node:8
 
-# tell the port number the container should expose
-EXPOSE 5000
+WORKDIR /usr/src/app
 
-# run the command
-CMD ["python", "./app.py"]
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+EXPOSE 8080
+CMD [ "npm", "start" ]
