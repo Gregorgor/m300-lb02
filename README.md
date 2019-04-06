@@ -1,11 +1,9 @@
 # Dokumentation Modul 300 LB01
 
-Make new branch from commit faa5e08e4491246865fb9aa85955ea7abcc5b7a0 (where the db still works and then first add reverse proxy and then firewall and finally some small mysql changes)
-
 ## Inhaltsverzeichnis
 
 -   01 - Einstieg
--   02 - Docker Umsetzung
+-   02 - Docker / Kubernetes Umsetzung
 -   03 - Sicherheitsaspekte
 -   04 - Abschluss
 
@@ -38,27 +36,29 @@ Falls ein Verzeichnis innerhalb des Containers persistent gespeichert werden sol
 
 ## 02 Docker Umsetzung
 
+### Projektbezeichnung
+
+Es wurde ein Projekt bestehend aus drei Containern erstellt. Zum einen gibt es ein Web-Frontend in einem NGINX Container und das dazugehörige Backend mit Python Flask. Zudem gibt es dann noch einen MySQL Container für die persistente Datenspeicherung in einer Datenbank. Das ganze wurde in der Google Cloud in einem Kubernetes Cluster realisiert.
+
 ### Netzwerkplan
 
     +---------------------------------------------------------------+
-    ! Container: Nginx Frontend Webserver                           !
-    ! Container: Python Flask Backend API                           !
+    ! Container: Nginx Frontend Webserver - 34.65.185.255:80        !
+    ! Container: Python Flask Backend API - 34.65.90.233:8080       !
+    ! Container: MySQL Datenbank - Hostname: mysql - no public IP   !
     +---------------------------------------------------------------+
     ! Container-Engine: Docker                                      !
     +---------------------------------------------------------------+
-    ! Minikube Kubernetes Umgebung                                  !
+    ! Kubernetes Umgebung Google Cloud (GKE) - 3 Node Cluster       !
     +---------------------------------------------------------------+
-    ! Hypervisor: VirtualBox                                        !
+    ! Notebook macOS - Schulnetz 10.x.x.x                           !
     +---------------------------------------------------------------+
-    ! Host-OS: macOS                                                !
-    +---------------------------------------------------------------+
-    ! Notebook - Schulnetz 10.x.x.x                                 !
-    +---------------------------------------------------------------+
+
+### Volumes
+
+Für die Datenbank wurde ein persistentes Volumen eingerichtet. Dieses wird ebenfalls in der Google Cloud als "Storage" gehostet und hat eine Grösse von 2GB.
 
 ### Relevante Befehle
-
--   kubectl expose deployment web-deployment --type=NodePort
--   minikube service web-deployment --url
 
 -   docker build -t fnoah/m300-lb02-web .
 -   docker push fnoah/m300-lb02-web
@@ -81,12 +81,12 @@ In der Kubernetes-Umgebung können logs mit folgendem Befehl abgerufen werden: `
 
 Für lokale Container kann mit folgendem Befehl ein Monitoring-Container eingesetztwerden: `docker run -d --name cadvisor -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro -p 8080:8080 google/cadvisor:latest`
 
-In der Kubernetes-Umgebung mit Minicube kann man mit folgendem Befehl das Webinterface aufrufen, wo diese Funktionalitäten bereits integriert sind.
+In der Kubernetes-Umgebung mit Google Cloud gibt es eine Web-Console, wo all diese Monitoring-Funktionalitäten bereits eingebaut sind.
 
 ### Sicherheitsaspekte
 
--   Lediglich der Port 80 des Web-Frontends wurde via `NodePort` nach Aussen freigegeben
--   Container laufen in einer dedizierten virtuellen Maschine auf meinem Host
+-   Lediglich der Port 80 des Web-Frontends und der Port 8080 der API wurdem via `LoadBalancer` nach Aussen freigegeben
+-   Container laufen in einer dedizierten virtuellen Maschine in der Google Cloud
 -   Die verwendeten Images definieren einen Benutzer und laufen nicht direkt als root
 -   In Kubernetes wurden die Container in einzelne Deployments aufgeteilt
 
@@ -94,21 +94,19 @@ In der Kubernetes-Umgebung mit Minicube kann man mit folgendem Befehl das Webint
 
 ### Testfälle
 
-| Testfall                                                                                              | Resultat                                                                                                                                |
-| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Vom Client (192.168.40.1) auf http://<kubernetes-ip>:80 zugreifen                                     | Funktioniert. Die Default Page des Proxy Servers (192.168.40.99) wird angezeigt                                                         |
-| Vom Client (192.168.40.1) auf http://localhost:5000/proxy                                             | Funktioniert. Die PHP-Seite mti den Datenbank-Daten des Webservers (192.168.40.100) wird angezeigt                                      |
-| Vom Client (192.168.40.1) auf http://192.168.40.100 zugreifen                                         | Man erhält keine Antwort, da die Firewall nur Verbindungen vom dem Proxy zulässt                                                        |
-| Vom Client (192.168.40.1) auf die Datenbank (192.168.40.101) zugreifen mit dem Benutzeraccount `root` | Funktioniert nicht, da die Firewall den Zugriff blockiert und der Benutzer in SQL zusätzlich auch nur für 192.168.40.100 zugelassen ist |
-| Vom Client (192.168.40.1) auf die Datenbank (192.168.40.101) zugreifen mit dem Benutzeraccount `root` | Funktioniert nicht, da die Firewall den Zugriff blockiert und der Benutzer in SQL zusätzlich auch nur für 192.168.40.100 zugelassen ist |
-| Vom Client (192.168.40.1) auf den Webserver (192.168.40.100) zugreifen per SSH                        | Funktioniert, da eine SSH Verbindung vom Client her zugelassen wurde in der Firewall                                                    |
-| Vom Proxy (192.168.40.99) auf den Webserver (192.168.40.100) zugreifen per SSH                        | Funktioniert nicht, da diese SSH Verbindung in der Firewall nicht zugelassen wurde                                                      |
+| Testfall                                                          | Resultat                                                                                                               |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Vom Client (192.168.40.1) auf http://34.65.185.255/ zugreifen     | Funktioniert. Die Homepage des Webservers wird angezeigt                                                               |
+| Vom Client (192.168.40.1) auf http://34.65.90.233:8080/ zugreifen | Funktioniert. Die JSON Response der API wird angezeigt (wird normalerweise lediglich über JavaScript aufgerufen)       |
+| Vom Client (192.168.40.1) auf die Datenbank (mysql) zugreifen     | Man erhält keine Antwort, da die Datenbank lediglich intern freigegeben wurde und keine öffentliche IP-Adresse besitzt |
+
+| Von dem API-Server (34.65.90.233) auf die Datenbank (Hostname: mysql) zugreifen mit dem Benutzer `root` und dem dazugehörigen Passwort | Funktioniert. Der MySQL Port 3306 wurde intern in freigegeben |
 
 ### Vergleich Vorwissen / Wissenszuwachs
 
 Hauptsächlich konnte ich während dieses Projektes Fähigkeiten verbessern. Die Vagrant-Grundlagen habe ich bereits gekannt, konnte hier aber erstmals mit einem Multi-VM-System arbeiten. Allerdings habe ich zuvor noch nie Shell-Scripts für die automatisierte Installation von Diensten erstellt, was sehr lehrreich war.
 
-Ich könnte während diesem Projekt sehr viel neues über Docker und insbesondere Kubernetes lernen, da ich zuvor erst mit Docker an sich gearbeitet habe. Deshalb habe ich mir in sehr vielen Gebieten neues Wissen zu Kubernetes aneignen können und auch ein paar neue Dinge bezüglich Docker gelernt.
+Ich könnte während diesem Projekt sehr viel neues über Docker und insbesondere Kubernetes mit Google Cloud lernen, da ich zuvor erst mit Docker an sich gearbeitet habe. Deshalb habe ich mir in sehr vielen Gebieten neues Wissen zu Kubernetes aneignen können und auch ein paar neue Dinge bezüglich Docker gelernt.
 
 ### Reflextion
 

@@ -5,6 +5,7 @@
         <script>
             $(function() {
                 $("#load-btn").click(function() {
+                    console.log("Button pressed");
                     const inputData = $("#url-input").val();
                     $.getJSON(inputData, function(data) {
                         console.log(data);

@@ -1,5 +1,37 @@
 docker system prune -a
 
-docker build -t fnoah/m300-lb02-api ./node_api/
+docker build -t fnoah/m300-lb02-api ./api/
 
 docker build -t fnoah/m300-lb02-web ./web
+
+Kubernetes:
+
+https://cloud.google.com/kubernetes-engine/docs/tutorials/guestbook
+
+Create cluster
+
+gcloud container clusters get-credentials guestbook
+
+Deployment:
+kubectl apply -f api-deployment
+api-service
+
+web-deployment
+web-service
+
+mysql-pv
+mysql-deployment
+
+https://kubernetes.io/docs/tasks/run-application/run-single-instance-stateful-application/
+
+kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h mysql -pback2Auenland
+
+MySQL testing
+
+create database m300;
+
+CREATE TABLE table ( id smallint unsigned not null auto_increment, name varchar(20) not null, constraint pk_example primary key (id) );
+
+create table data ( id INT PRIMARY KEY AUTO_INCREMENT, data FLOAT );
+insert into data(data) values ( 1.173 );
+insert into data(data) values ( 2.345 );
