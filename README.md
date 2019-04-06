@@ -98,13 +98,12 @@ In der Kubernetes-Umgebung mit Google Cloud gibt es eine Web-Console, wo all die
 
 ### Testfälle
 
-| Testfall                                                          | Resultat                                                                                                               |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Vom Client (192.168.40.1) auf http://34.65.185.255/ zugreifen     | Funktioniert. Die Homepage des Webservers wird angezeigt                                                               |
-| Vom Client (192.168.40.1) auf http://34.65.90.233:8080/ zugreifen | Funktioniert. Die JSON Response der API wird angezeigt (wird normalerweise lediglich über JavaScript aufgerufen)       |
-| Vom Client (192.168.40.1) auf die Datenbank (mysql) zugreifen     | Man erhält keine Antwort, da die Datenbank lediglich intern freigegeben wurde und keine öffentliche IP-Adresse besitzt |
-
-| Von dem API-Server (34.65.90.233) auf die Datenbank (Hostname: mysql) zugreifen mit dem Benutzer `root` und dem dazugehörigen Passwort | Funktioniert. Der MySQL Port 3306 wurde intern in freigegeben |
+| Testfall                                                                                                                               | Resultat                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Vom Client (192.168.40.1) auf http://34.65.185.255/ zugreifen                                                                          | Funktioniert. Die Homepage des Webservers wird angezeigt                                                               |
+| Vom Client (192.168.40.1) auf http://34.65.90.233:8080/ zugreifen                                                                      | Funktioniert. Die JSON Response der API wird angezeigt (wird normalerweise lediglich über JavaScript aufgerufen)       |
+| Vom Client (192.168.40.1) auf die Datenbank (mysql) zugreifen                                                                          | Man erhält keine Antwort, da die Datenbank lediglich intern freigegeben wurde und keine öffentliche IP-Adresse besitzt |
+| Von dem API-Server (34.65.90.233) auf die Datenbank (Hostname: mysql) zugreifen mit dem Benutzer `root` und dem dazugehörigen Passwort | Funktioniert. Der MySQL Port 3306 wurde intern in freigegeben                                                          |
 
 ### Vergleich Vorwissen / Wissenszuwachs
 
