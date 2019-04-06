@@ -58,6 +58,10 @@ Es wurde ein Projekt bestehend aus drei Containern erstellt. Zum einen gibt es e
 
 Für die Datenbank wurde ein persistentes Volumen eingerichtet. Dieses wird ebenfalls in der Google Cloud als "Storage" gehostet und hat eine Grösse von 2GB.
 
+### Image-Bereitstellung
+
+Die selbst für dieses Projekt erstellten Docker-Images werden in dem Docker Hub unter dem Benutzer `fnoah` gehostet. Kubernetes bezieht diese dann automatisch von dort.
+
 ### Relevante Befehle
 
 -   docker build -t fnoah/m300-lb02-web .
