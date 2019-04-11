@@ -1,4 +1,4 @@
-# Dokumentation Modul 300 LB01
+# Dokumentation Modul 300 LB02
 
 ## Inhaltsverzeichnis
 
